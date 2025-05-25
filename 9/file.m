@@ -1,33 +1,54 @@
-clc;
 clear variables;
 close all;
+clc;
 
-x = -1:0.1:1;
-y = x.^2 + 0.25 * randn(size(x));
+x=-1:0.1:1;
+y=x.^2+0.25*rand(size(x));
 
-sp = spline(x, y);
 xx = linspace(min(x), max(x), 200);
-yy = ppval(sp, xx);
 
-plot(x, y, 'x', xx, yy, '-');
+SSN=fitnet(10);
+SSN=train(SSN,x,y);
+SP=spline(x,y);
+
+Fsin=fittype('x.^2+a*sin(b*x+c)');
+Fsin=fit(x.',y.', Fsin);
+
+ySSN=SSN(x);
+ySP=ppval(SP,x);
+yFsin=Fsin(x);
+
+eSSN=mean(abs(y-ySSN));
+eSP=mean(abs(y-ySP));
+eFsin=mean(abs(y-yFsin));
+
+iSSN=trapz(x(1:end-1), (1+(diff(ySSN)./diff(x)).^2).^0.5);
+iSP=trapz(x(1:end-1), (1+(diff(ySP)./diff(x)).^2).^0.5);
+iFsin=trapz(x(1:end-1), (1+(diff(yFsin)./diff(x)).^2).^0.5);
+
+ySSN=SSN(xx);
+ySP=ppval(SP,xx);
+yFsin=Fsin(xx);
+
+figure;
 hold on;
+plot(x,y,'rx', 'MarkerSize', 10, 'LineWidth', 2);
+plot(xx, ySSN);
+plot(xx, ySP);
+plot(xx, yFsin);
 
-ssn = fitnet(10);
-ssn = train(ssn, x, y);
+legend('Data', 'SSN', 'Spline', 'F+sin');
+set(gca, 'FontSize', 14);
 
-yy2 = sim(ssn, xx);
-plot(xx, yy2, '--');
+figure
+subplot(2,1,1);
+bar([eSSN, eSP, eFsin]);
+set(gca, 'XTickLabel', {'SSN', 'Spline', 'F+sin'});
+title('Blad');
+set(gca, 'FontSize', 14);
 
-f = @(p, x) x.^2 + p(1) * sin(p(2) * x + p(3));
-fun = @(p) sum((y - f(p, x)).^2);
-
-p0 = [0.5, 1, 0];
-p_fit = fminsearch(fun, p0);
-
-yy_f = f(p_fit, xx);
-plot(xx, yy_f, ':');
-
-dy = diff(yy_f) ./ diff(xx);
-
-legend('Data', 'Spline', 'SSN', 'F+sin');
-hold off;
+subplot(2,1,2);
+bar([iSSN, iSP, iFsin]);
+set(gca, 'XTickLabel', {'SSN', 'Spline', 'F+sin'});
+title('Dlugosc');
+set(gca, 'FontSize', 14);
